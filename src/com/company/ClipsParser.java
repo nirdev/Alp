@@ -11,51 +11,60 @@ public class ClipsParser {
 //            (multislot coord (type INTEGER) (default 6 1 3))
 //            (slot type (type SYMBOL) (default MODEL_INT)))
 
-    public static ClipsDataModel parseDeftemplateLine(String line) throws Exception {
+    /**
+     * Important stuff
+     * CLIPSObject:
+     * <p>
+     * deftemplate(Name): DO_1
+     * multislot coord (Type + Id ): (type INTEGER) (default 6 1 3)
+     */
+
+    public static ClipsObject parseDeftemplateLine(String line) throws Exception {
         //Will throw exception if not valid
         validetDeftemplateLine(line);
-        ArrayList<deftemplate> deftemplates = getAllMultislots(line);
 
 
-        return null;
+        ClipsObject clipsObject = new ClipsObject();
+        clipsObject.setName(getWordAfterSpecificWord(line, "deftemplate"));
+
+        String firstMultiSlotString = getMultislotsStringList(line).get(0);
+        clipsObject.setType(getWordAfterSpecificWord(firstMultiSlotString, "type"));
+        clipsObject.setId(getIdString(firstMultiSlotString, "default"));
+
+
+        return clipsObject;
     }
 
-    private static ArrayList<deftemplate> getAllMultislots(String validLine) {
-        ArrayList<deftemplate> deftemplates = new ArrayList<>();
-        ArrayList<String> multislotStrings = getMultislotsStringList(validLine);
+    private static String getWordAfterSpecificWord(String validLine, String firstWord) {
+        String cleanLine = validLine.replaceAll("\\p{P}", "");
+        String[] words = cleanLine.split(" ");
 
-        for (String multislotString : multislotStrings) {
-            deftemplate deftemplate = new deftemplate();
-
-            deftemplate.setMultislotName(getNameFromMultisltString(multislotString));
-            deftemplate.setMultislotDefault(getNameFromMultisltDefault(multislotString));
-            deftemplate.setMultislotType(getNameFromMultisltType(multislotString));
-
-            deftemplates.add(deftemplate);
+        for (int i = 0; i < words.length; i++) {
+            if (words[i].equals(firstWord)) {
+                return words[i + 1];
+            }
         }
 
-        return deftemplates;
-    }
-
-    private static String getNameFromMultisltDefault(String multislotString) {
-        // TODO: 2/21/2017
         return null;
     }
 
-    private static String getNameFromMultisltType(String multislotString) {
-        // TODO: 2/21/2017
-        return null;
-    }
+    private static String getIdString(String validLine, String firstWord) {
+        String[] idArray = new String[3];
+        idArray[0] = getWordAfterSpecificWord(validLine, firstWord);
+        StringBuffer id = new StringBuffer(idArray[0]);
 
-    private static String getNameFromMultisltString(String multislotString) {
-        // TODO: 2/21/2017
-        return null;
+
+        for (int i = 1; i < 3; i++) {
+            idArray[i] = getWordAfterSpecificWord(validLine, idArray[i - 1]);
+            id.append(idArray[i]);
+        }
+        return id.toString();
     }
 
     /**
      * Return list of strings under the multislot parenthesis
      */
-    public static ArrayList<String> getMultislotsStringList(String validLine) {
+    public static ArrayList<String> getMultislotsStringList(String validLine) throws Exception {
 
         ArrayList<String> matchList = new ArrayList<String>();
 
@@ -77,6 +86,10 @@ public class ClipsParser {
             }
             matchList.add(validLine.substring(startBracketsIndex, endBracketsIndex - 1));
             startBracketsIndex = validLine.indexOf("multislot", startBracketsIndex + 1);
+        }
+
+        if (matchList == null) {
+            throw new Exception("No multislot string available in the deftamplate");
         }
 
         return matchList;
@@ -105,7 +118,7 @@ public class ClipsParser {
         return line.matches("[\\n\\r]+");
     }
 
-    public static boolean isAllBracketsClosed(String s) {
+    private static boolean isAllBracketsClosed(String s) {
         HashMap<Character, Character> closeBracketMap = new HashMap<Character, Character>();
         closeBracketMap.put(')', '(');
         HashSet<Character> openBracketSet = new HashSet<Character>(
